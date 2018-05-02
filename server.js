@@ -129,6 +129,22 @@ app.get("/invoice/user/:user_id", function (req, res) {
     });
 });
 
+app.get("/invoice/user/:user_id/:invoice_id", function (req, res) {
+    let db = new sqlite3.Database("./database/InvoicingApp.db");
+    let sql = `SELECT * FROM invoices LEFT JOIN transactions ON invoices.id=transactions.invoice_id WHERE user_id='${
+        req.params.user_id
+        }' AND invoice_id='${req.params.invoice_id}'`;
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            throw err;
+        }
+        return res.json({
+            status: true,
+            transactions: rows
+        });
+    });
+});
+
 app.listen(PORT, function () {
     console.log(`App running on localhost:${PORT}`);
 });
