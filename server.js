@@ -77,6 +77,58 @@ app.post("/login", function (req, res) {
     });
 });
 
+app.post("/invoice", function (req, res) {
+    // validate data
+    if (isEmpty(req.body.name)) {
+        return res.json({
+            status: false,
+            message: "Invoice needs a name"
+        });
+    }
+    // perform other checks
+    // create invoice
+    let db = new sqlite3.Database("./database/InvoicingApp.db");
+    let sql = `INSERT INTO invoices(name,user_id,paid) VALUES(
+        '${req.body.name}',
+        '${req.body.user_id}',
+        0
+      )`;
+    db.serialize(function () {
+        db.run(sql, function (err) {
+            if (err) {
+                throw err;
+            }
+            let invoice_id = this.lastID;
+            for (let i = 0; i < req.body.txn_names.length; i++) {
+                let query = `INSERT INTO transactions(name,price,invoice_id) VALUES(
+                    '${req.body.txn_names[i]}',
+                    '${req.body.txn_prices[i]}',
+                    '${invoice_id}'
+                )`;
+                db.run(query);
+            }
+            return res.json({
+                status: true,
+                message: "Invoice created"
+            });
+        });
+    });
+});
+
+app.get("/invoice/user/:user_id", function (req, res) {
+    let db = new sqlite3.Database("./database/InvoicingApp.db");
+    let sql = `SELECT * FROM invoices LEFT JOIN transactions ON invoices.id=transactions.invoice_id WHERE user_id='${req.params.user_id}'`;
+    db.all(sql, [], (err, rows) => {
+        if (err) {
+            throw err;
+        }
+        return res.json({
+            status: true,
+            transactions: rows
+        });
+    });
+});
+
 app.listen(PORT, function () {
     console.log(`App running on localhost:${PORT}`);
 });
